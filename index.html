@@ -365,22 +365,46 @@ function toggleMusic() {
     musicBtn.style.animation = 'none';
     musicPlaying = false;
   } else {
-    audio.play().then(() => {
-      musicIcon.textContent = '🎶';
-      musicBtn.style.animation = 'spin 3s linear infinite';
-      musicPlaying = true;
-    }).catch(() => {});
+    playAudio();
   }
 }
 
-// 首次点击页面时尝试播放（微信兼容）
-let firstTap = true;
-document.addEventListener('touchstart', function onFirstTouch() {
-  if (firstTap) {
-    firstTap = false;
-    // 不自动播放，等用户点音乐按钮
+function playAudio() {
+  audio.play().then(() => {
+    musicIcon.textContent = '🎶';
+    musicBtn.style.animation = 'spin 3s linear infinite';
+    musicPlaying = true;
+  }).catch(() => {});
+}
+
+// 微信内自动播放：WeixinJSBridge 兼容
+function tryAutoPlay() {
+  if (typeof WeixinJSBridge !== 'undefined') {
+    WeixinJSBridge.invoke('getNetworkType', {}, function() {
+      playAudio();
+    });
+  } else {
+    document.addEventListener('WeixinJSBridgeReady', function() {
+      WeixinJSBridge.invoke('getNetworkType', {}, function() {
+        playAudio();
+      });
+    });
   }
-}, { once: true });
+}
+
+// 微信外：首次交互时自动播放
+let autoPlayed = false;
+function onFirstTouch() {
+  if (!autoPlayed) {
+    autoPlayed = true;
+    playAudio();
+  }
+}
+document.addEventListener('touchstart', onFirstTouch, { once: true });
+document.addEventListener('click', onFirstTouch, { once: true });
+
+// 页面加载后尝试自动播放
+tryAutoPlay();
 // 生成星星
 const starsEl = document.getElementById('stars');
 for (let i = 0; i < 60; i++) {
